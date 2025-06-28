@@ -1,0 +1,45 @@
+name: Build NetHunter Kernel for A73xq
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install Dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          build-essential bc bison flex libssl-dev \
+          libncurses5-dev git clang lld curl unzip zstd
+
+    - name: Clone Kernel Source
+      run: |
+        git clone --depth=1 https://github.com/LineageOS/android_kernel_samsung_sm7325 kernel
+
+    - name: Setup Kernel Config
+      run: |
+        cd kernel
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export KBUILD_BUILD_USER=nethunter
+        export KBUILD_BUILD_HOST=github-ci
+        mkdir -p out
+        make O=out a73xq_defconfig
+
+    - name: Compile Kernel
+      run: |
+        cd kernel
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export KBUILD_BUILD_USER=nethunter
+        export KBUILD_BUILD_HOST=github-ci
+        make O=out -j$(nproc)
+
+    - name: Upload Kernel Image
+      uses: ncipollo/upload-artifact-action@v1
+      with:
+        name: Image.gz-dtb
+        path: kernel/out/arch/arm64/boot/Image.gz-dtb
